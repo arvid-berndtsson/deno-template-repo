@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/hook.sh"
+
+# Run deno fmt to automatically fix formatting issues
+deno fmt
+
+# Run deno lint to check for linting issues
+deno lint
+
+# If there are any changes after formatting or linting errors, exit with an error
+if ! git diff --quiet; then
+    printf "Formatting issues were fixed. Please review and stage the changes.\n"
+    exit 1
+fi
+
+# Check if the commit message follows the Conventional Commits format
+commit_msg_file=$(git rev-parse --git-dir)/COMMIT_EDITMSG
+commit_msg=$(cat "$commit_msg_file")
+commit_regex='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|wip)(\([a-z -]+\))?!?: .{1,50}'
+
+if ! echo "$commit_msg" | grep -qE "$commit_regex"; then
+    printf "Commit message does not follow the Conventional Commits format.\n"
+    printf "Expected format: <type>[optional scope]!: <description>\n"
+    printf "Examples:\n"
+    printf "  feat(auth): add login functionality\n"
+    printf "  fix: resolve memory leak\n"
+    printf "  feat(api)!: redesign user endpoints\n"
+    printf "  wip: initial implementation of feature X\n"
+    exit 1
+fi
